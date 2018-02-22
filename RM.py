@@ -30,11 +30,11 @@ class RM:
     def __bin__(self, number):
         return bin(number)[2:].zfill(self.n)
 
-    def print_matrix(self):
+    def print(self):
         for row in self.generating_matrix:
             print(self.__bin__(row))
-        print('r =', self.r)
-        print('m =', self.m)
+        # print('r =', self.r)
+        # print('m =', self.m)
         print('n =', self.n)
         print('k =', self.k)
 
@@ -73,9 +73,18 @@ class RM:
                             if self.__bin__(remaining_row)[column_in_row_pos] == '1':
                                 self.generating_matrix[self.generating_matrix.index(remaining_row)] ^= row
                         positions_stepped_view[column_in_row_pos] = row_pos
-                        break
+                    break
                 column_in_row_pos += 1
             row_pos += 1
+        #
+        # next step
+        #
+        #
+        # kill null
+        #
+        while 0 in self.generating_matrix:
+            self.generating_matrix.pop(self.generating_matrix.index(0))
+        self.k = len(self.generating_matrix)
         #
         # next step
         #
@@ -101,8 +110,16 @@ class RM:
         self.r = self.m - self.r - 1
         self.k = len(self.generating_matrix)
 
-    def add_matrix_to_right(self):
-        new_column = '1' + '0' * (self.k - 1)
-        for i in range(self.k):
-            self.generating_matrix[i] = int(self.__bin__(self.generating_matrix[i]) + new_column[i], 2)
-        self.n += 1
+    def add_matrix_to_right(self, number_of_columns):
+        new_matrix = ''
+        for i in range(number_of_columns):
+            new_matrix += '0' * i + '1' + '0' * (self.k - i - 1)
+        for i in range(number_of_columns):
+            for j in range(self.k):
+                self.generating_matrix[j] = int(self.__bin__(self.generating_matrix[j]) + new_matrix[i * self.k + j], 2)
+            self.n += 1
+
+    def conjunction(self, another_RM):
+        self.generating_matrix += another_RM.generating_matrix
+        self.k += another_RM.k
+        self.rm_dual()
