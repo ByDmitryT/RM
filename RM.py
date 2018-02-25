@@ -2,8 +2,8 @@ import itertools
 
 
 class RM:
-    def __init__(self, r, m):
-        if r > m or r < 1 or m < 1:
+    def __init__(self, r = 0, m = 1):
+        if r > m or r < 0 or m < 1:
             raise Exception("r > m")
         self.r = r
         self.m = m
@@ -13,18 +13,19 @@ class RM:
 
     def __create_generating_matrix__(self):
         generating_matrix = [2 ** self.n - 1]
-        count = self.n
-        for m in range(self.m):
-            count //= 2
-            generating_matrix.append(int('0b' + 2**m * ('0'*count + '1'*count), 2))
-        help_matrix = generating_matrix.copy()
-        single_row = help_matrix.pop(0)
-        for r in range(2, self.r + 1):
-            for combo in itertools.combinations(help_matrix, r):
-                help_row = single_row
-                for row in combo:
-                    help_row &= row
-                generating_matrix.append(help_row)
+        if self.r != 0:
+            count = self.n
+            for m in range(self.m):
+                count //= 2
+                generating_matrix.append(int('0b' + 2**m * ('0'*count + '1'*count), 2))
+            help_matrix = generating_matrix.copy()
+            single_row = help_matrix.pop(0)
+            for r in range(2, self.r + 1):
+                for combo in itertools.combinations(help_matrix, r):
+                    help_row = single_row
+                    for row in combo:
+                        help_row &= row
+                    generating_matrix.append(help_row)
         return generating_matrix
 
     def __bin__(self, number):
@@ -33,19 +34,20 @@ class RM:
     def print(self):
         for row in self.generating_matrix:
             print(self.__bin__(row))
+        print()
         # print('r =', self.r)
         # print('m =', self.m)
-        print('n =', self.n)
-        print('k =', self.k)
+        # print('n =', self.n)
+        # print('k =', self.k)
 
-    def copy_RM(self, another_RM):
+    def copy(self, another_RM):
         self.k = another_RM.k
         self.n = another_RM.n
         self.m = another_RM.m
         self.r = another_RM.r
         self.generating_matrix = another_RM.generating_matrix.copy()
 
-    def rm_mult_matrix(self, another_RM):
+    def mult_rm_matrix(self, another_RM):
         if self.m != another_RM.m:
             raise Exception("columns are not equal")
         help_matrix = self.generating_matrix.copy()
@@ -59,7 +61,7 @@ class RM:
             self.r = self.m
         self.k = len(self.generating_matrix)
 
-    def rm_dual(self):
+    def dual(self):
         positions_stepped_view = [-1] * self.n
         row_pos = 0
         while row_pos != self.k:
@@ -68,11 +70,11 @@ class RM:
             column_in_row_pos = 0
             for column_in_row in self.__bin__(row):
                 if column_in_row == '1':
-                    if positions_stepped_view[column_in_row_pos] == -1:
-                        for remaining_row in remaining_rows:
-                            if self.__bin__(remaining_row)[column_in_row_pos] == '1':
-                                self.generating_matrix[self.generating_matrix.index(remaining_row)] ^= row
-                        positions_stepped_view[column_in_row_pos] = row_pos
+                    # if positions_stepped_view[column_in_row_pos] == -1:
+                    for remaining_row in remaining_rows:
+                        if self.__bin__(remaining_row)[column_in_row_pos] == '1':
+                            self.generating_matrix[self.generating_matrix.index(remaining_row)] ^= row
+                    positions_stepped_view[column_in_row_pos] = row_pos
                     break
                 column_in_row_pos += 1
             row_pos += 1
@@ -83,7 +85,11 @@ class RM:
         # kill null
         #
         while 0 in self.generating_matrix:
-            self.generating_matrix.pop(self.generating_matrix.index(0))
+            index = self.generating_matrix.index(0)
+            self.generating_matrix.pop(index)
+            for row in range(self.n):
+                if positions_stepped_view[row] > index:
+                    positions_stepped_view[row] -= 1
         self.k = len(self.generating_matrix)
         #
         # next step
@@ -113,7 +119,7 @@ class RM:
     def add_matrix_to_right(self, number_of_columns):
         new_matrix = ''
         for i in range(number_of_columns):
-            new_matrix += '0' * i + '1' + '0' * (self.k - i - 1)
+            new_matrix += '0' * (i + 1) + '1' + '0' * (self.k - i - 2)
         for i in range(number_of_columns):
             for j in range(self.k):
                 self.generating_matrix[j] = int(self.__bin__(self.generating_matrix[j]) + new_matrix[i * self.k + j], 2)
@@ -122,4 +128,19 @@ class RM:
     def conjunction(self, another_RM):
         self.generating_matrix += another_RM.generating_matrix
         self.k += another_RM.k
-        self.rm_dual()
+        self.dual()
+
+    def kick_column(self, number):
+        number += 1
+        if number < 1 or number > self.n:
+            raise Exception('Column not found')
+        if number == 1:
+            for row in range(self.k):
+                self.generating_matrix[row] = int('0b' + self.__bin__(self.generating_matrix[row])[number:], 2)
+        elif number == self.n:
+            for row in range(self.k):
+                self.generating_matrix[row] = int('0b' + self.__bin__(self.generating_matrix[row])[:number - 1], 2)
+        else:
+            for row in range(self.k):
+                self.generating_matrix[row] = int('0b' + self.__bin__(self.generating_matrix[row])[:number - 1] + self.__bin__(self.generating_matrix[row])[number:], 2)
+        self.n -= 1
