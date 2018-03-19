@@ -38,7 +38,7 @@ class RM:
         # print('r =', self.r)
         # print('m =', self.m)
         # print('n =', self.n)
-        # print('k =', self.k)
+        print('k =', self.k)
 
     def copy(self, another_RM):
         self.k = another_RM.k
